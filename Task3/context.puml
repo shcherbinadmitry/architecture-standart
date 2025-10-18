@@ -1,0 +1,40 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title "Диаграмма контекста банка Стандарт"
+
+Person_Ext(client, "Клиент", "Существующий или новый клиент")
+
+Boundary(system, "Банковские системы", "") {
+    System(abs, "АБС", "Delphi и СУБД на Oracle.")
+    System(internet_bank, "Интернет-банк", "(ASP.NET MVC 4.5)")
+    System(website, "Сайт банка", "PHP + React.js")
+    System(call_center, "Кол-центр", "CRM-система")
+    System(sms_gateway, "СМС-шлюз")
+    System(deposit, "Микросервис депозитов", "Java Spring Boot")
+    System(credit_rates, "Микросервис ставок", "Java Spring Boot")
+
+    Person(front_manager, "Менеджер фронт-офиса")
+    Person(call_manager, "Менеджер кол-центра")
+    Person(credit_manager, "Кредитный менеджер")
+    Person(deposit_manager, "Депозитный менеджер")
+}
+
+Rel(client, website, "UC1 - Клиент создает заявку на депозит", "HTTPS")
+Rel(website, call_center, "UC1 - Заявка отображается в системе кол-центра")
+Rel(client, internet_bank, "UC2 - Клиент создает заявку на депозит", "HTTPS")
+Rel(call_manager, call_center, "UC3 - Менеджер смотрит заявку")
+Rel(call_manager, client, "UC3 - Менеджер связывается с клиентом")
+Rel(call_center, deposit, "UC3 - заявка заводится в АБС")
+Rel(internet_bank, deposit, "UC2 - заявка заводится в АБС")
+Rel(credit_manager, abs, "UC4 - устанавливает ставки по кредитам")
+Rel(abs, credit_rates, "API")
+Rel(deposit_manager, abs, "UC4, UC6 - рассчитывает условия по депозита/работа с депозитами клиентов")
+Rel(abs, deposit, "API")
+Rel(website, deposit, "Актуальные ставки")
+Rel(website, credit_rates, "Актуальные ставки")
+Rel(internet_bank, credit_rates, "Актуальные ставки")
+Rel(client, front_manager, "UC5 - верификация личности клиента")
+Rel(front_manager, abs, "UC5 - открытие депозита в АБС")
+Rel(deposit, sms_gateway, "UC2/UC6 - Отправка СМС о подтверждении заявки/открытии депозита")
+@enduml

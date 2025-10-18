@@ -1,0 +1,90 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title "Диаграмма контейнеров системы депозитов АБС банка Стандарт"
+
+System_Boundary(users, "Пользователи систем банка") {
+    Person_Ext(client, "Клиент")
+    Person(front_manager, "Менеджер фронт-офиса")
+    Person(call_manager, "Менеджер кол-центра")
+    Person(back_manager, "Менеджер бек-офиса")
+}
+
+System_Boundary(bank_standard, "БАНК СТАНДАРТ") {
+    ContainerQueue(message_broker, "Kafka")
+    Container(api_gateway, "API Gateway", "Kong", "rate-limit, auth, load-balancer")
+    Container(cache, "Redis")
+
+    System_Boundary(new_services, "Новые сервисы") {
+        Container(deposit_core, "Микросервис депозитов", "Java Spring Boot")
+        Container(credit_rates_core, "Микросервис управления кредитными ставками", "Java Spring Boot")
+        Container(credit_rates_client, "Фронтенд для управления кредитными ставками", "React.js")
+        ContainerDb(deposit_db, "БД заявок на депозиты", "PostgreSQL")
+        ContainerDb(credit_rates_db, "БД кредитных", "PostgreSQL")
+    }
+
+    System_Boundary(abs, "АБС") {
+        Container(abs_core, "Монолит АБС", "Delphi", "Автоматизированная банковская система")
+        ContainerDb(abs_db, "БД АБС", "Oracle")
+    }
+
+    System_Boundary(website, "Веб-сайт") {
+        Container(website_core, "Сервис для сайта банка", "PHP")
+        Container(website_client, "Сайт банка", "React.js")
+        ContainerDb(website_db, "БД сайта", "PostgreSQL")
+    }
+
+    System_Boundary(internet_bank, "Интернет-банк") {
+        Container(bank_core, "Клиент-серверная система", "ASP.NET MVC 4.5 на основе .NET Framework 4.5", "")
+        ContainerDb(bank_db, "БД ИБ", "MS SQL")
+    }
+
+    System_Boundary(call_center, "Кол-центр") {
+        Container(call_center_core, "Клиент-серверная система", "React.js/Java Spring Boot")
+        ContainerDb(call_center_db, "БД Кол-центра", "PostgreSQL")
+        Container_Ext(partner_call_center, "Партнерский кол-центр")
+    }
+
+    System_Boundary(telecom_gateway, "Телеком") {
+      Container(telecom_core, "Шлюз отправки СМС", "Java", "Вычитывание очереди и отправка СМС")
+      ContainerDb(telecom_bd, "БД шлюза СМС", "Postgresql")
+      Container_Ext(telecom_operator, "Телеком-оператор", "Отправляет СМС")
+    }
+}
+
+Rel(call_manager, client, "Связывается по продукту")
+Rel(front_manager, abs_core, "Обрабатывает заявки, подтверждает пользователей")
+Rel(back_manager, abs_core, "Устанавливает ставки/одобряет заявки на депозиты")
+
+Rel(client, api_gateway, "Знакомится с предложениями, оставляет заявку на открытие депозита", "HTTPS")
+Rel(api_gateway, website_client, "обрабатывает запросы")
+Rel(api_gateway, bank_core, "API", "REST")
+Rel(api_gateway, deposit_core, "Сообщает об заявке о открытие депозита")
+
+Rel(website_core, message_broker, "Заводит заявку от пользователя")
+Rel(website_core, website_db, "Чтение/запись", "SQL")
+Rel(website_core, cache, "Чтение")
+Rel(website_client, website_core, "Запрашивает данные", "REST")
+
+Rel(abs_core, abs_db, "Чтение/запись", "SQL")
+Rel(message_broker, deposit_core, "Вычитывает сообщения об открытии депозита")
+Rel(deposit_core, abs_core, "Запрос в АБС на создание депозита")
+Rel(deposit_core, deposit_db, "Чтение/запись", "SQL")
+Rel(credit_rates_client, credit_rates_core, "API", "REST")
+Rel(credit_rates_core, credit_rates_db, "Чтение/запись", "SQL")
+Rel(deposit_core, cache, "Запись", "Сохраняет справочные данные")
+Rel(credit_rates_core, cache, "Запись", "Сохраняет справочные данные")
+
+Rel(bank_core, bank_db, "Чтение/запись", "SQL")
+Rel(bank_core, cache, "Чтение")
+Rel(call_manager, call_center_core, "Работает в CRM")
+Rel(call_center_core, call_center_db, "Чтение/запись", "SQL")
+Rel(call_center_core, message_broker, "Сохраняет заявку для отработки менеджером")
+Rel(call_center_core, partner_call_center, "Подключает по необходимости")
+Rel(call_center_core, message_broker, "Сохраняет заявку для отработки менеджером")
+
+Rel(message_broker, telecom_core, "Очередь на отправку СМС")
+Rel(telecom_core, telecom_bd, "Чтение/запись", "SQL")
+Rel(telecom_core, telecom_operator, "API", "Делает запрос к оператору на отправку СМС")
+
+@enduml
