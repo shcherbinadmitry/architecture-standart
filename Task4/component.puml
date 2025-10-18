@@ -1,0 +1,37 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Диаграмма компонентов банка Стандарт
+
+System(call_center, "Кол-центр")
+System_Ext(partner_call_center, "Кол-центр партнёра")
+Container_Ext(abs, "АБС")
+ContainerQueue(message_queue, "Kafka", "Топик: credit_rates_update")
+Container(sftp, "SFTP-сервер")
+
+Container_Boundary(credit_rate, "Микросервис ставок (Java)") {
+    Component(credit_rate_service, "Сервис управления ставками")
+    Component(kafka_producer, "Kafka Producer")
+
+    Rel(credit_rate_service, kafka_producer, "Событие изменения")
+}
+
+Container_Boundary(file_transfer_service, "Микросервис передачи ставок (Java)") {
+    Component(kafka_consumer, "Kafka-потребитель")
+    Component(сron_scheduler, "Планировщик задач")
+    Component(file_generator, "Генератор файлов выгрузки")
+    Component(sftp_uploader, "SFTP клиент")
+
+    Rel(kafka_consumer, call_center, "Синхронизация ставок", "REST")
+    Rel(сron_scheduler, kafka_consumer, "Триггер запроса")
+    Rel(сron_scheduler, file_generator, "Данные ставок")
+    Rel(сron_scheduler, sftp_uploader, "CSV файл")
+}
+
+
+Rel(message_queue, abs, "Событие изменения")
+Rel(kafka_producer, message_queue, "Данные ставок")
+Rel(message_queue, kafka_consumer, "Данные ставок")
+Rel(sftp_uploader, sftp, "Загрузка файла")
+Rel(partner_call_center, sftp, "Получение ставок")
+@enduml
