@@ -1,0 +1,50 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title "Диаграмма контекста банка Стандарт"
+
+Person_Ext(client, "Клиент", "Существующий или новый клиент")
+System_Ext(partner_call_center, "Партнерский кол-центр")
+Person_Ext(partner_call_manager, "Партнерский менеджер кол-центр")
+
+Boundary(system, "Банковские системы", "") {
+    System(abs, "АБС", "Delphi и СУБД на Oracle.")
+'    System(internet_bank, "Интернет-банк", "(ASP.NET MVC 4.5)")
+'    System(website, "Сайт банка", "PHP + React.js")
+    System(call_center, "Кол-центр", "CRM-система")
+'    System(deposit, "Микросервис депозитов", "Java Spring Boot")
+    System(credit_rates, "Микросервис ставок", "Java Spring Boot")
+    System(file_transfer_service, "Сервис передачи ставок", "Java Spring Boot")
+    System(sftp_server, "SFTP-сервер")
+
+'    Person(front_manager, "Менеджер фронт-офиса")
+    Person(call_manager, "Менеджер кол-центра")
+    Person(credit_manager, "Кредитный менеджер")
+'    Person(deposit_manager, "Депозитный менеджер")
+}
+
+'Rel(client, website, "Клиент создает заявку на депозит", "HTTPS")
+'Rel(website, call_center, "Заявка отображается в системе кол-центра")
+'Rel(client, internet_bank, "Клиент создает заявку на депозит", "HTTPS")
+'Rel(call_manager, call_center, "Менеджер смотрит заявку")
+Rel(client, call_center, "UC1, UC2 - Клиент звонит в кол-центр")
+Rel(call_center, call_manager, "UC1 - Менеджер получает звонок")
+Rel(call_manager, call_center, "UC1 - Менеджер изучает актуальные ставки")
+Rel(partner_call_center, partner_call_manager, "UC2 - Менеджер получает звонок")
+Rel(partner_call_center, sftp_server, "UC2 - Менеджер изучает актуальные ставки")
+'Rel(call_center, deposit, "заявка заводится в АБС")
+'Rel(internet_bank, deposit, "заявка заводится в АБС")
+Rel(credit_manager, abs, "UC1, UC2 - устанавливает ставки по кредитам")
+Rel(abs, credit_rates, "UC1 - API")
+'Rel(deposit_manager, abs, "рассчитывает условия по депозита/работа с депозитами клиентов")
+'Rel(abs, deposit, "API")
+'Rel(website, deposit, "Актуальные ставки")
+'Rel(website, credit_rates, "Актуальные ставки")
+'Rel(internet_bank, credit_rates, "Актуальные ставки")
+'Rel(client, front_manager, "верификация личности клиента")
+'Rel(front_manager, abs, "открытие депозита в АБС")
+Rel(credit_rates, call_center, "UC1 - Синхронизация актуальных ставок", "KAFKA")
+Rel(call_center, partner_call_center, "UC2 - Перенаправляет звонки при высокой нагрузке")
+Rel(credit_rates, file_transfer_service, "UC1, UC2 - Заполняет данные о ставках")
+Rel(file_transfer_service, sftp_server, "UC2 - Передает файлы со ставками")
+@enduml
